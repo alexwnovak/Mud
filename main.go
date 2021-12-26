@@ -49,4 +49,6 @@ func handleConnection(conn net.Conn) {
 	}
 
 	fmt.Println("Client message:", string(buffer[:len(buffer)-1]))
+
+	handleConnection(conn)
 }
