@@ -41,26 +41,26 @@ func main() {
 }
 
 func handleConnection(conn net.Conn) {
-	buffer, err := bufio.NewReader(conn).ReadBytes('\n')
+	for {
+		buffer, err := bufio.NewReader(conn).ReadBytes('\n')
 
-	if err != nil {
-		fmt.Println("Client disconnected")
-		conn.Close()
-		return
+		if err != nil {
+			fmt.Println("Client disconnected")
+			conn.Close()
+			return
+		}
+
+		input := string(buffer)
+		input = strings.ReplaceAll(input, "\r", "")
+		input = strings.ReplaceAll(input, "\n", "")
+
+		fmt.Println("Client message:", input)
+		fmt.Println("Length:", len(input))
+
+		if input == "/quit" {
+			fmt.Println("Disconnecting client...")
+			conn.Close()
+			return
+		}
 	}
-
-	input := string(buffer)
-	input = strings.ReplaceAll(input, "\r", "")
-	input = strings.ReplaceAll(input, "\n", "")
-
-	fmt.Println("Client message:", input)
-	fmt.Println("Length:", len(input))
-
-	if input == "/quit" {
-		fmt.Println("Disconnecting client...")
-		conn.Close()
-		return
-	}
-
-	handleConnection(conn)
 }
