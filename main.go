@@ -41,13 +41,14 @@ func main() {
 }
 
 func handleConnection(conn net.Conn) {
+	defer conn.Close()
+
 	for {
 		reader, err := bufio.NewReader(conn).ReadBytes('\n')
 		writer := bufio.NewWriter(conn)
 
 		if err != nil {
 			fmt.Println("Client disconnected")
-			conn.Close()
 			return
 		}
 
@@ -69,7 +70,6 @@ func handleConnection(conn net.Conn) {
 
 		if input == "/quit" {
 			fmt.Println("Disconnecting client...")
-			conn.Close()
 			return
 		}
 	}
