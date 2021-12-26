@@ -42,7 +42,7 @@ func main() {
 
 func handleConnection(conn net.Conn) {
 	for {
-		buffer, err := bufio.NewReader(conn).ReadBytes('\n')
+		reader, err := bufio.NewReader(conn).ReadBytes('\n')
 
 		if err != nil {
 			fmt.Println("Client disconnected")
@@ -50,7 +50,7 @@ func handleConnection(conn net.Conn) {
 			return
 		}
 
-		input := string(buffer)
+		input := string(reader)
 		input = strings.ReplaceAll(input, "\r", "")
 		input = strings.ReplaceAll(input, "\n", "")
 
