@@ -43,6 +43,7 @@ func main() {
 func handleConnection(conn net.Conn) {
 	for {
 		reader, err := bufio.NewReader(conn).ReadBytes('\n')
+		writer := bufio.NewWriter(conn)
 
 		if err != nil {
 			fmt.Println("Client disconnected")
@@ -56,6 +57,15 @@ func handleConnection(conn net.Conn) {
 
 		fmt.Println("Client message:", input)
 		fmt.Println("Length:", len(input))
+
+		bytes, err := writer.WriteString("Server received: " + input)
+		writer.Flush()
+
+		fmt.Println("Bytes written to client:", bytes)
+
+		if err != nil {
+			fmt.Println("Write error:", err.Error())
+		}
 
 		if input == "/quit" {
 			fmt.Println("Disconnecting client...")
