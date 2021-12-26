@@ -43,16 +43,18 @@ func lobby() {
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
+	reader := bufio.NewReader(conn)
+	writer := bufio.NewWriter(conn)
+
 	for {
-		reader, err := bufio.NewReader(conn).ReadBytes('\n')
-		writer := bufio.NewWriter(conn)
+		buffer, err := reader.ReadBytes('\n')
 
 		if err != nil {
 			fmt.Println("Client disconnected")
 			return
 		}
 
-		input := string(reader)
+		input := string(buffer)
 		input = strings.ReplaceAll(input, "\r", "")
 		input = strings.ReplaceAll(input, "\n", "")
 
