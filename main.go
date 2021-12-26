@@ -14,8 +14,8 @@ const (
 	connType = "tcp"
 )
 
-func main() {
-	fmt.Println("Starting", connType, "server on", connHost, ":", connPort)
+func lobby() {
+	fmt.Println("Lobby started, waiting for connections")
 
 	l, err := net.Listen(connType, connHost+":"+connPort)
 
@@ -72,5 +72,12 @@ func handleConnection(conn net.Conn) {
 			fmt.Println("Disconnecting client...")
 			return
 		}
+	}
+}
+
+func main() {
+	go lobby()
+
+	for {
 	}
 }
