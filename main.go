@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 )
 
 const (
@@ -48,7 +49,18 @@ func handleConnection(conn net.Conn) {
 		return
 	}
 
-	fmt.Println("Client message:", string(buffer[:len(buffer)-1]))
+	input := string(buffer)
+	input = strings.ReplaceAll(input, "\r", "")
+	input = strings.ReplaceAll(input, "\n", "")
+
+	fmt.Println("Client message:", input)
+	fmt.Println("Length:", len(input))
+
+	if input == "/quit" {
+		fmt.Println("Disconnecting client...")
+		conn.Close()
+		return
+	}
 
 	handleConnection(conn)
 }
