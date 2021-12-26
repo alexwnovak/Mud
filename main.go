@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 	connType = "tcp"
 )
 
-func lobby() {
+func lobby(heartbeat chan int) {
 	fmt.Println("Lobby started, waiting for connections")
 
 	l, err := net.Listen(connType, connHost+":"+connPort)
@@ -36,15 +37,23 @@ func lobby() {
 
 		fmt.Println("Client connected:", c.RemoteAddr().String())
 
-		go handleConnection(c)
+		go handleConnection(c, heartbeat)
 	}
 }
 
-func handleConnection(conn net.Conn) {
+func handleConnection(conn net.Conn, heartbeat chan int) {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
 	writer := bufio.NewWriter(conn)
+
+	go func() {
+		for {
+			<-heartbeat
+			fmt.Println("CONN heartbeat")
+			writer.Flush()
+		}
+	}()
 
 	for {
 		buffer, err := reader.ReadBytes('\n')
@@ -62,7 +71,6 @@ func handleConnection(conn net.Conn) {
 		fmt.Println("Length:", len(input))
 
 		bytes, err := writer.WriteString("Server received: " + input)
-		writer.Flush()
 
 		fmt.Println("Bytes written to client:", bytes)
 
@@ -77,8 +85,22 @@ func handleConnection(conn net.Conn) {
 	}
 }
 
+func heartbeat(heartbeatChan chan int) {
+	const rate = 2000
+
+	for {
+		time.Sleep(rate * time.Millisecond)
+		fmt.Println("===== Heartbeat")
+
+		heartbeatChan <- 1
+	}
+}
+
 func main() {
-	go lobby()
+	heartbeatChan := make(chan int)
+
+	go lobby(heartbeatChan)
+	go heartbeat(heartbeatChan)
 
 	for {
 	}
