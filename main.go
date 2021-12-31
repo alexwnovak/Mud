@@ -75,6 +75,10 @@ func client(conn net.Conn) {
 	}
 }
 
+func thing() int {
+	return 5
+}
+
 func main() {
 	go lobby()
 
