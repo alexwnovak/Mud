@@ -15,7 +15,7 @@ const (
 	connType = "tcp"
 )
 
-func lobby(heartbeat chan int) {
+func lobby(heartbeat chan int, system chan int) {
 	fmt.Println("Lobby started, waiting for connections")
 
 	l, err := net.Listen(connType, connHost+":"+connPort)
@@ -27,7 +27,19 @@ func lobby(heartbeat chan int) {
 
 	defer l.Close()
 
+	exit := false
+
+	go func() {
+		<-system
+		exit = true
+		fmt.Println("Lobby exit flag set")
+	}()
+
 	for {
+		if exit {
+			return
+		}
+
 		c, err := l.Accept()
 
 		if err != nil {
@@ -37,11 +49,11 @@ func lobby(heartbeat chan int) {
 
 		fmt.Println("Client connected:", c.RemoteAddr().String())
 
-		go handleConnection(c, heartbeat)
+		go handleConnection(c, heartbeat, system)
 	}
 }
 
-func handleConnection(conn net.Conn, heartbeat chan int) {
+func handleConnection(conn net.Conn, heartbeat chan int, system chan int) {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
@@ -81,6 +93,9 @@ func handleConnection(conn net.Conn, heartbeat chan int) {
 		if input == "/quit" {
 			fmt.Println("Disconnecting client...")
 			return
+		} else if input == "/shutdown" {
+			fmt.Println("Received shut down command")
+			system <- 1
 		}
 	}
 }
@@ -98,10 +113,24 @@ func heartbeat(heartbeatChan chan int) {
 
 func main() {
 	heartbeatChan := make(chan int)
+	systemChan := make(chan int)
 
-	go lobby(heartbeatChan)
+	go lobby(heartbeatChan, systemChan)
 	go heartbeat(heartbeatChan)
 
+	exit := false
+
+	go func() {
+		<-systemChan
+		exit = true
+		fmt.Println("Main exit flag set")
+	}()
+
 	for {
+		if exit {
+			break
+		}
+
+		time.Sleep(3 * time.Second)
 	}
 }
