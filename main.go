@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"time"
 )
 
 const (
@@ -15,7 +14,9 @@ const (
 	connType = "tcp"
 )
 
-func lobby(heartbeat chan int, system chan int) {
+// This function listens for incoming connections. When connections arrive, they run on their
+// own go routines that is a dedicated loop for that specific client.
+func lobby() {
 	fmt.Println("Lobby started, waiting for connections")
 
 	l, err := net.Listen(connType, connHost+":"+connPort)
@@ -27,19 +28,7 @@ func lobby(heartbeat chan int, system chan int) {
 
 	defer l.Close()
 
-	exit := false
-
-	go func() {
-		<-system
-		exit = true
-		fmt.Println("Lobby exit flag set")
-	}()
-
 	for {
-		if exit {
-			return
-		}
-
 		c, err := l.Accept()
 
 		if err != nil {
@@ -48,24 +37,17 @@ func lobby(heartbeat chan int, system chan int) {
 		}
 
 		fmt.Println("Client connected:", c.RemoteAddr().String())
-
-		go handleConnection(c, heartbeat, system)
+		go client(c)
 	}
 }
 
-func handleConnection(conn net.Conn, heartbeat chan int, system chan int) {
+// This is the go routine that services one client connection. This receives data from the
+// client, applies game logic, then writes output.
+func client(conn net.Conn) {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
 	writer := bufio.NewWriter(conn)
-
-	go func() {
-		for {
-			<-heartbeat
-			fmt.Println("CONN heartbeat")
-			writer.Flush()
-		}
-	}()
 
 	for {
 		buffer, err := reader.ReadBytes('\n')
@@ -79,12 +61,8 @@ func handleConnection(conn net.Conn, heartbeat chan int, system chan int) {
 		input = strings.ReplaceAll(input, "\r", "")
 		input = strings.ReplaceAll(input, "\n", "")
 
-		fmt.Println("Client message:", input)
-		fmt.Println("Length:", len(input))
-
-		bytes, err := writer.WriteString("Server received: " + input)
-
-		fmt.Println("Bytes written to client:", bytes)
+		writer.WriteString("Server received: " + input + "\n")
+		writer.Flush()
 
 		if err != nil {
 			fmt.Println("Write error:", err.Error())
@@ -93,44 +71,12 @@ func handleConnection(conn net.Conn, heartbeat chan int, system chan int) {
 		if input == "/quit" {
 			fmt.Println("Disconnecting client...")
 			return
-		} else if input == "/shutdown" {
-			fmt.Println("Received shut down command")
-			system <- 1
 		}
-	}
-}
-
-func heartbeat(heartbeatChan chan int) {
-	const rate = 2000
-
-	for {
-		time.Sleep(rate * time.Millisecond)
-		fmt.Println("===== Heartbeat")
-
-		heartbeatChan <- 1
 	}
 }
 
 func main() {
-	heartbeatChan := make(chan int)
-	systemChan := make(chan int)
+	go lobby()
 
-	go lobby(heartbeatChan, systemChan)
-	go heartbeat(heartbeatChan)
-
-	exit := false
-
-	go func() {
-		<-systemChan
-		exit = true
-		fmt.Println("Main exit flag set")
-	}()
-
-	for {
-		if exit {
-			break
-		}
-
-		time.Sleep(3 * time.Second)
-	}
+	<-make(chan bool)
 }
